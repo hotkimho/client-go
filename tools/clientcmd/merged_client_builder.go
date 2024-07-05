@@ -98,7 +98,6 @@ func (config *DeferredLoadingClientConfig) ClientConfig() (*restclient.Config, e
 	if err != nil {
 		return nil, err
 	}
-
 	// load the configuration and return on non-empty errors and if the
 	// content differs from the default config
 	mergedConfig, err := mergedClientConfig.ClientConfig()

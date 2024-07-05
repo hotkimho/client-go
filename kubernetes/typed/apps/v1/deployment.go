@@ -69,6 +69,7 @@ type deployments struct {
 
 // newDeployments returns a Deployments
 func newDeployments(c *AppsV1Client, namespace string) *deployments {
+	//
 	return &deployments{
 		gentype.NewClientWithListAndApply[*v1.Deployment, *v1.DeploymentList, *appsv1.DeploymentApplyConfiguration](
 			"deployments",

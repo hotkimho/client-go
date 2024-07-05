@@ -513,6 +513,8 @@ func NewForConfigAndClient(c *rest.Config, httpClient *http.Client) (*Clientset,
 		return nil, err
 	}
 	cs.appsV1, err = appsv1.NewForConfigAndClient(&configShallowCopy, httpClient)
+	// builderxx
+
 	if err != nil {
 		return nil, err
 	}

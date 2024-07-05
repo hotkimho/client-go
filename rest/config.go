@@ -367,6 +367,7 @@ func RESTClientForConfigAndClient(config *Config, httpClient *http.Client) (*RES
 	if config.GroupVersion != nil {
 		gv = *config.GroupVersion
 	}
+
 	clientContent := ClientContentConfig{
 		AcceptContentTypes: config.AcceptContentTypes,
 		ContentType:        config.ContentType,
@@ -378,6 +379,7 @@ func RESTClientForConfigAndClient(config *Config, httpClient *http.Client) (*RES
 	if err == nil && config.WarningHandler != nil {
 		restClient.warningHandler = config.WarningHandler
 	}
+
 	return restClient, err
 }
 
@@ -548,6 +550,8 @@ func InClusterConfig() (*Config, error) {
 // Note: the Insecure flag is ignored when testing for this value, so MITM attacks are
 // still possible.
 func IsConfigTransportTLS(config Config) bool {
+	fmt.Println("[IsConfigTransportTLS] config.CAFile is: ", config.CAFile)
+	fmt.Println("[IsConfigTransportTLS] config cada is: ", config.CAData)
 	baseURL, _, err := DefaultServerUrlFor(&config)
 	if err != nil {
 		return false

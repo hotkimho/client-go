@@ -17,6 +17,7 @@ limitations under the License.
 package flowcontrol
 
 import (
+	"fmt"
 	"math/rand"
 	"sync"
 	"time"
@@ -78,6 +79,7 @@ func newBackoff(clock clock.Clock, initial, max time.Duration, maxJitterFactor f
 
 // Get the current backoff Duration
 func (p *Backoff) Get(id string) time.Duration {
+	fmt.Println("backoff get id : ", id, p)
 	p.RLock()
 	defer p.RUnlock()
 	var delay time.Duration

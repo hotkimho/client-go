@@ -102,6 +102,7 @@ func (g *ClientConfigGetter) GetExplicitFile() string {
 	return ""
 }
 func (g *ClientConfigGetter) IsDefaultConfig(config *restclient.Config) bool {
+	fmt.Println("[ho] IsDefaultConfig")
 	return false
 }
 
@@ -195,6 +196,7 @@ func NewDefaultClientConfigLoadingRules() *ClientConfigLoadingRules {
 // Relative paths inside of the .kubeconfig files are resolved against the .kubeconfig file's parent folder
 // and only absolute file paths are returned.
 func (rules *ClientConfigLoadingRules) Load() (*clientcmdapi.Config, error) {
+
 	if err := rules.Migrate(); err != nil {
 		return nil, err
 	}

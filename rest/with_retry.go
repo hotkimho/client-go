@@ -205,11 +205,17 @@ func (r *withRetry) Before(ctx context.Context, request *Request) error {
 	// from the (response, err) tuple from the last attempt, so 'Before'
 	// can apply these retry after parameters prior to the next attempt.
 	// 'r.retryAfter == nil' indicates that this is the very first attempt.
+	// 첫 번째 시도인 경우
 	if r.retryAfter == nil {
+		fmt.Println("첫 번째 시도!!")
 		// we do a backoff sleep before the first attempt is made,
 		// (preserving current behavior).
 		if request.backoff != nil {
+			fmt.Println("url : ", url)
+			fmt.Println("cald : ", request.backoff.CalculateBackoff(url))
 			request.backoff.Sleep(request.backoff.CalculateBackoff(url))
+		} else {
+			fmt.Println("hohoho")
 		}
 		return nil
 	}
@@ -236,6 +242,7 @@ func (r *withRetry) Before(ctx context.Context, request *Request) error {
 }
 
 func (r *withRetry) After(ctx context.Context, request *Request, resp *http.Response, err error) {
+
 	// 'After' is invoked immediately after an attempt is made, let's label
 	// the attempt we have just made as attempt 'N'.
 	// the current value of r.retryAfter represents the retry after

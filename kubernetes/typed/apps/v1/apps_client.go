@@ -86,6 +86,7 @@ func NewForConfigAndClient(c *rest.Config, h *http.Client) (*AppsV1Client, error
 	if err != nil {
 		return nil, err
 	}
+
 	return &AppsV1Client{client}, nil
 }
 

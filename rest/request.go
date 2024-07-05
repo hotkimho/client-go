@@ -710,6 +710,8 @@ func (r *Request) Watch(ctx context.Context) (watch.Interface, error) {
 		return nil, r.err
 	}
 
+	// 클라이언트가 없으면 기본 클라이언트
+	// 하지만 transport가 없으므로 인증 정보가 없어서 에러가 난다
 	client := r.c.Client
 	if client == nil {
 		client = http.DefaultClient
@@ -723,9 +725,16 @@ func (r *Request) Watch(ctx context.Context) (watch.Interface, error) {
 		}
 		return false
 	}
+
+	// 디폴트 값은 10
 	retry := r.retryFn(r.maxRetries)
+
 	url := r.URL().String()
+	fmt.Println("r.URL().String() : ", url)
 	for {
+		// 요청을 보내기 전 필요한 작업 수행
+		// 재시도 전에 일정 시간 간격을 조정
+		// After에서 retryAfter 값을 수정하고 이 값을 통해 재시도인 경우 시간을 계산
 		if err := retry.Before(ctx, r); err != nil {
 			return nil, retry.WrapPreviousError(err)
 		}
@@ -735,11 +744,16 @@ func (r *Request) Watch(ctx context.Context) (watch.Interface, error) {
 			return nil, err
 		}
 
+		// http/2 로 요청을 보내기 때문에 스트림이 맺어짐
+		// http/1.1에서 사용하려면 Transfer-Encoding: chunked 값을 헤더에 사용해야함
 		resp, err := client.Do(req)
 		retry.After(ctx, r, resp, err)
+
 		if err == nil && resp.StatusCode == http.StatusOK {
 			return r.newStreamWatcher(resp)
 		}
+
+		fmt.Println("for 3")
 
 		done, transformErr := func() (bool, error) {
 			defer readAndCloseResponseBody(resp)
@@ -757,6 +771,8 @@ func (r *Request) Watch(ctx context.Context) (watch.Interface, error) {
 			}
 			return true, fmt.Errorf("for request %s, got status: %v", url, resp.StatusCode)
 		}()
+
+		fmt.Println("for 4")
 		if done {
 			if isErrRetryableFunc(req, err) {
 				return watch.NewEmptyWatch(), nil
@@ -768,6 +784,8 @@ func (r *Request) Watch(ctx context.Context) (watch.Interface, error) {
 			}
 			return nil, retry.WrapPreviousError(err)
 		}
+
+		fmt.Println("for 5")
 	}
 }
 
@@ -908,11 +926,17 @@ func (r *Request) handleWatchList(ctx context.Context, w watch.Interface) WatchL
 }
 
 func (r *Request) newStreamWatcher(resp *http.Response) (watch.Interface, error) {
+
 	contentType := resp.Header.Get("Content-Type")
 	mediaType, params, err := mime.ParseMediaType(contentType)
+
 	if err != nil {
 		klog.V(4).Infof("Unexpected content type from the server: %q: %v", contentType, err)
 	}
+
+	// 스트림 디코더
+	// 데이터를 해석할 수 있는 단위(프레임)으로 데이터를 수신
+	// 예를 들면 파드에 대한 모든 정보를 받는게 아닌 파드 1개씩 프레임 단위로 데이터를 받아서 해석
 	objectDecoder, streamingSerializer, framer, err := r.c.content.Negotiator.StreamDecoder(mediaType, params)
 	if err != nil {
 		return nil, err
@@ -921,8 +945,10 @@ func (r *Request) newStreamWatcher(resp *http.Response) (watch.Interface, error)
 	handleWarnings(resp.Header, r.warningHandler)
 
 	frameReader := framer.NewFrameReader(resp.Body)
+	// 시리얼라이저는 인코딩/디코딩할 수 있는 메타정보를 가지고 있음 그래서 프레임 디코딩에 필요
 	watchEventDecoder := streaming.NewDecoder(frameReader, streamingSerializer)
 
+	// 데이터를 프레임 단위로 처리하는 디코더를 받는 스트림 왓쳐 생성
 	return watch.NewStreamWatcher(
 		restclientwatch.NewDecoder(watchEventDecoder, objectDecoder),
 		// use 500 to indicate that the cause of the error is unknown - other error codes

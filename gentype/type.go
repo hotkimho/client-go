@@ -157,6 +157,7 @@ func (c *Client[T]) Get(ctx context.Context, name string, options metav1.GetOpti
 
 // List takes label and field selectors, and returns the list of resources that match those selectors.
 func (l *alsoLister[T, L]) List(ctx context.Context, opts metav1.ListOptions) (L, error) {
+
 	if watchListOptions, hasWatchListOptionsPrepared, watchListOptionsErr := watchlist.PrepareWatchListOptionsFromListOptions(opts); watchListOptionsErr != nil {
 		klog.Warningf("Failed preparing watchlist options for $.type|resource$, falling back to the standard LIST semantics, err = %v", watchListOptionsErr)
 	} else if hasWatchListOptionsPrepared {
@@ -167,10 +168,12 @@ func (l *alsoLister[T, L]) List(ctx context.Context, opts metav1.ListOptions) (L
 		}
 		klog.Warningf("The watchlist request for %s ended with an error, falling back to the standard LIST semantics, err = %v", l.client.resource, err)
 	}
+
 	result, err := l.list(ctx, opts)
 	if err == nil {
 		consistencydetector.CheckListFromCacheDataConsistencyIfRequested(ctx, "list request for "+l.client.resource, l.list, opts, result)
 	}
+
 	return result, err
 }
 
@@ -180,6 +183,7 @@ func (l *alsoLister[T, L]) list(ctx context.Context, opts metav1.ListOptions) (L
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
 	}
+
 	err := l.client.client.Get().
 		NamespaceIfScoped(l.client.namespace, l.client.namespace != "").
 		Resource(l.client.resource).
@@ -224,28 +228,30 @@ func (c *Client[T]) Watch(ctx context.Context, opts metav1.ListOptions) (watch.I
 
 // Create takes the representation of a resource and creates it.  Returns the server's representation of the resource, and an error, if there is any.
 func (c *Client[T]) Create(ctx context.Context, obj T, opts metav1.CreateOptions) (T, error) {
+	// 생성된 데이터를 담을 객체 생성
 	result := c.newObject()
 	err := c.client.Post().
-		NamespaceIfScoped(c.namespace, c.namespace != "").
-		Resource(c.resource).
-		VersionedParams(&opts, c.parameterCodec).
-		Body(obj).
-		Do(ctx).
-		Into(result)
+		NamespaceIfScoped(c.namespace, c.namespace != ""). // 네임스페이스 설정
+		Resource(c.resource). // 리소스 타입 명시
+		VersionedParams(&opts, c.parameterCodec). // 인코딩 설정
+		Body(obj). // 생성할 데이터
+		Do(ctx). // API 서버에 요청
+		Into(result) // 결과값을 result 객체에 저장
 	return result, err
 }
 
 // Update takes the representation of a resource and updates it. Returns the server's representation of the resource, and an error, if there is any.
 func (c *Client[T]) Update(ctx context.Context, obj T, opts metav1.UpdateOptions) (T, error) {
+	// 업데이트된 결과를 담을 오브젝트
 	result := c.newObject()
 	err := c.client.Put().
-		NamespaceIfScoped(c.namespace, c.namespace != "").
-		Resource(c.resource).
-		Name(obj.GetName()).
-		VersionedParams(&opts, c.parameterCodec).
-		Body(obj).
-		Do(ctx).
-		Into(result)
+		NamespaceIfScoped(c.namespace, c.namespace != ""). // 수정할 리소스 네임스페이스
+		Resource(c.resource). // 수정할 리소스 명시
+		Name(obj.GetName()). // 수정할 리소스 이름
+		VersionedParams(&opts, c.parameterCodec). // 인코딩/디코딩
+		Body(obj). // 수정할 데이터
+		Do(ctx). // API 서버에 요청
+		Into(result) // 수정된 결과 저장
 	return result, err
 }
 
@@ -292,7 +298,12 @@ func (l *alsoLister[T, L]) DeleteCollection(ctx context.Context, opts metav1.Del
 }
 
 // Patch applies the patch and returns the patched resource.
-func (c *Client[T]) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (T, error) {
+func (c *Client[T]) Patch(ctx context.Context,
+	name string,
+	pt types.PatchType,
+	data []byte,
+	opts metav1.PatchOptions,
+	subresources ...string) (T, error) {
 	result := c.newObject()
 	err := c.client.Patch(pt).
 		NamespaceIfScoped(c.namespace, c.namespace != "").

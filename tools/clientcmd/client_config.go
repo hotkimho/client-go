@@ -197,6 +197,7 @@ func (config *DirectClientConfig) ClientConfig() (*restclient.Config, error) {
 
 	clientConfig := &restclient.Config{}
 	clientConfig.Host = configClusterInfo.Server
+	// [ho] check
 	if configClusterInfo.ProxyURL != "" {
 		u, err := parseProxyURL(configClusterInfo.ProxyURL)
 		if err != nil {
@@ -663,6 +664,7 @@ func BuildConfigFromFlags(masterUrl, kubeconfigPath string) (*restclient.Config,
 		}
 		klog.Warning("error creating inClusterConfig, falling back to default config: ", err)
 	}
+	fmt.Println("start BuildConfigFromFlags")
 	return NewNonInteractiveDeferredLoadingClientConfig(
 		&ClientConfigLoadingRules{ExplicitPath: kubeconfigPath},
 		&ConfigOverrides{ClusterInfo: clientcmdapi.Cluster{Server: masterUrl}}).ClientConfig()

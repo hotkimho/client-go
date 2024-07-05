@@ -22,9 +22,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
-	"path/filepath"
-
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,6 +29,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 	"k8s.io/client-go/util/retry"
+	"os"
+	"path/filepath"
 	//
 	// Uncomment to load all auth plugins
 	// _ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -67,7 +66,7 @@ func main() {
 			Name: "demo-deployment",
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: int32Ptr(2),
+			Replicas: int32Ptr(3),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"app": "demo",
@@ -100,14 +99,25 @@ func main() {
 
 	// Create Deployment
 	fmt.Println("Creating deployment...")
-	result, err := deploymentsClient.Create(context.TODO(), deployment, metav1.CreateOptions{})
+	result, err := deploymentsClient.Create(context.TODO(), deployment, metav1.CreateOptions{
+		//DryRun: []string{"All"},
+		FieldManager: "kimho",
+	})
 	if err != nil {
 		panic(err)
 	}
 	fmt.Printf("Created deployment %q.\n", result.GetObjectMeta().GetName())
-
+	//
+	//watchResult, err := deploymentsClient.Watch(context.TODO(), metav1.ListOptions{})
+	//if err != nil {
+	//	panic(err)
+	//}
+	//
+	//for event := range watchResult.ResultChan() {
+	//	fmt.Println(event.Type)
+	//}
 	// Update Deployment
-	prompt()
+
 	fmt.Println("Updating deployment...")
 	//    You have two options to Update() this Deployment:
 	//
@@ -129,11 +139,17 @@ func main() {
 		if getErr != nil {
 			panic(fmt.Errorf("Failed to get latest version of Deployment: %v", getErr))
 		}
+		fmt.Println("in retryOnConflict")
 
-		result.Spec.Replicas = int32Ptr(1)                           // reduce replica count
+		result.Spec.Replicas = int32Ptr(2)                           // reduce replica count
 		result.Spec.Template.Spec.Containers[0].Image = "nginx:1.13" // change nginx version
-		_, updateErr := deploymentsClient.Update(context.TODO(), result, metav1.UpdateOptions{})
-		return updateErr
+		result.Annotations = map[string]string{
+			"test-v1": "test-v1",
+		}
+
+		//_, updateErr := deploymentsClient.Update(context.TODO(), result, metav1.UpdateOptions{})
+		return getErr
+
 	})
 	if retryErr != nil {
 		panic(fmt.Errorf("Update failed: %v", retryErr))
@@ -150,6 +166,8 @@ func main() {
 	for _, d := range list.Items {
 		fmt.Printf(" * %s (%d replicas)\n", d.Name, *d.Spec.Replicas)
 	}
+
+	//_, err = deploymentsClient.Patch(context.TODO())
 
 	// Delete Deployment
 	prompt()

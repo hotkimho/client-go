@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -62,7 +63,7 @@ func main() {
 	}
 
 	deploymentRes := schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}
-
+	fmt.Println("deploy groups: ", deploymentRes)
 	deployment := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "apps/v1",
@@ -104,6 +105,19 @@ func main() {
 		},
 	}
 
+	fmt.Println("before create deployment")
+	// 테스트 할 때 이미 생성된 리소스가 있으면 삭제
+
+	_, getErr2 := client.Resource(deploymentRes).Namespace(apiv1.NamespaceDefault).Get(context.TODO(), "demo-deployment", metav1.GetOptions{})
+	if getErr2 == nil {
+		deletePolicy2 := metav1.DeletePropagationForeground
+		if err := client.Resource(deploymentRes).Namespace(apiv1.NamespaceDefault).Delete(context.TODO(), "demo-deployment", metav1.DeleteOptions{
+			PropagationPolicy: &deletePolicy2,
+		}); err != nil {
+			panic(err)
+		}
+		time.Sleep(5 * time.Second)
+	}
 	// Create Deployment
 	fmt.Println("Creating deployment...")
 	result, err := client.Resource(deploymentRes).Namespace(apiv1.NamespaceDefault).Create(context.TODO(), deployment, metav1.CreateOptions{})

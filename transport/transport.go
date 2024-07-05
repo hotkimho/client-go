@@ -47,7 +47,6 @@ func New(config *Config) (http.RoundTripper, error) {
 		rt  http.RoundTripper
 		err error
 	)
-
 	if config.Transport != nil {
 		rt = config.Transport
 	} else {
