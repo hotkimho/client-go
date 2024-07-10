@@ -34,7 +34,6 @@ func main() {
 
 	watcher, err := client.CoreV1().Pods("default").
 		Watch(context.TODO(), metav1.ListOptions{})
-
 	if err != nil {
 		klog.Fatal(err)
 	}

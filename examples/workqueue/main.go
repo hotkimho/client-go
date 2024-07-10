@@ -130,7 +130,7 @@ func (c *Controller) Run(workers int, stopCh chan struct{}) {
 		runtime.HandleError(fmt.Errorf("Timed out waiting for caches to sync"))
 		return
 	}
-
+	c.runWorker()
 	for i := 0; i < workers; i++ {
 		go wait.Until(c.runWorker, time.Second, stopCh)
 	}
@@ -141,6 +141,7 @@ func (c *Controller) Run(workers int, stopCh chan struct{}) {
 
 func (c *Controller) runWorker() {
 	for c.processNextItem() {
+		fmt.Println("process next item func")
 	}
 }
 
